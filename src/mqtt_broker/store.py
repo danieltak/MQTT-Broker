@@ -3,7 +3,7 @@ from __future__ import annotations
 import threading
 from collections import deque
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from .models import ClientInfo, StoredMessage
 
@@ -85,7 +85,7 @@ class ClientRegistry:
                 client_id=client_id,
                 address=address,
                 connected=True,
-                connected_at=datetime.now(timezone.utc),
+                connected_at=datetime.now(UTC),
                 subscriptions=subscriptions,
             )
 

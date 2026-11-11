@@ -95,12 +95,11 @@ class ClientsTree(QTreeWidget):
         for col in (0, 1, 2):
             header.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
 
+    def _top_items(self) -> list[QTreeWidgetItem]:
+        return [item for i in range(self.topLevelItemCount()) if (item := self.topLevelItem(i)) is not None]
+
     def set_clients(self, clients: list[ClientInfo]) -> None:
-        collapsed = {
-            self.topLevelItem(i).text(0)
-            for i in range(self.topLevelItemCount())
-            if not self.topLevelItem(i).isExpanded()
-        }
+        collapsed = {item.text(0) for item in self._top_items() if not item.isExpanded()}
         self.clear()
         for info in clients:
             status = "Connected" if info.connected else "Disconnected"
@@ -119,11 +118,11 @@ class ClientsTree(QTreeWidget):
             item.setExpanded(info.client_id not in collapsed)
 
     def client_ids(self) -> list[str]:
-        return [self.topLevelItem(i).text(0) for i in range(self.topLevelItemCount())]
+        return [item.text(0) for item in self._top_items()]
 
     def subscriptions(self, client_id: str) -> list[str]:
-        for i in range(self.topLevelItemCount()):
-            item = self.topLevelItem(i)
+        for item in self._top_items():
             if item.text(0) == client_id:
-                return [item.child(j).text(0) for j in range(item.childCount())]
+                children = (item.child(j) for j in range(item.childCount()))
+                return [child.text(0) for child in children if child is not None]
         return []

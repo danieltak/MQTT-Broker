@@ -1,7 +1,7 @@
 import csv
 import json
 import socket
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
@@ -11,7 +11,7 @@ from mqtt_broker.config import AppConfig, load_config, save_config
 from mqtt_broker.exporter import CSV_COLUMNS, export_csv
 from mqtt_broker.models import StoredMessage
 
-T0 = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+T0 = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
 
 
 def read_rows(path):

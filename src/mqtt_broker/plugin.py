@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Protocol
 
 from amqtt.broker import BrokerContext
@@ -46,7 +46,7 @@ class CapturePlugin(BasePlugin[BrokerContext]):
     async def on_broker_message_broadcast(self, *, client_id: str, message: ApplicationMessage, **_: Any) -> None:
         if self.sink:
             self.sink.message_received(StoredMessage(
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
                 topic=message.topic,
                 payload=bytes(message.data or b""),
                 qos=message.qos or 0,

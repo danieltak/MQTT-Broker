@@ -38,4 +38,7 @@ def check_port_available(host: str, port: int) -> None:
         # amqtt binds with SO_REUSEADDR, which on Windows silently shares a busy port
         if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        else:
+            # On POSIX this only ignores TIME_WAIT; an active listener still blocks the bind
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind((host, port))

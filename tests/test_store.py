@@ -1,11 +1,11 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from mqtt_broker.models import PayloadFormat, StoredMessage, format_payload
 from mqtt_broker.store import ClientRegistry, MessageStore
 
-T0 = datetime(2026, 1, 1, tzinfo=timezone.utc)
+T0 = datetime(2026, 1, 1, tzinfo=UTC)
 
 
 def msg(topic: str, payload: bytes, n: int = 0) -> StoredMessage:

@@ -10,6 +10,7 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import paho.mqtt.client as mqtt  # noqa: E402
+from paho.mqtt.enums import CallbackAPIVersion  # noqa: E402
 
 
 def wait_until(predicate: Callable[[], bool], timeout: float = 5.0) -> None:
@@ -36,7 +37,7 @@ def mqtt_client() -> Iterator[MqttFactory]:
     created: list[mqtt.Client] = []
 
     def make(port: int, client_id: str, clean_session: bool = True) -> mqtt.Client:
-        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=client_id, clean_session=clean_session)
+        client = mqtt.Client(CallbackAPIVersion.VERSION2, client_id=client_id, clean_session=clean_session)
         client.connect("127.0.0.1", port)
         client.loop_start()
         created.append(client)

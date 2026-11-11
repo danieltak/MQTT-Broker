@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
+from typing import TypeVar
 
-from PySide6.QtCore import QItemSelection, Qt, QTimer
+from PySide6.QtCore import QItemSelection, QObject, Qt, QTimer
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -39,9 +40,22 @@ from .trees import ClientsTree, TopicTree
 
 REFRESH_INTERVAL_MS = 100
 
+_W = TypeVar("_W", bound=QObject)
+
+
+def _named(obj: _W, name: str) -> _W:
+    obj.setObjectName(name)
+    return obj
+
+
+def _button(text: str, tooltip: str) -> QPushButton:
+    button = QPushButton(text)
+    button.setToolTip(tooltip)
+    return button
+
 
 def _panel() -> tuple[QWidget, QVBoxLayout, QHBoxLayout]:
-    panel = QWidget(objectName="Panel")
+    panel = _named(QWidget(), "Panel")
     layout = QVBoxLayout(panel)
     layout.setContentsMargins(10, 8, 10, 10)
     layout.setSpacing(8)
@@ -85,7 +99,8 @@ class MainWindow(QMainWindow):
         self._populate_interfaces(self.config.host)
         self._connect_signals()
 
-        self._timer = QTimer(self, interval=REFRESH_INTERVAL_MS)
+        self._timer = QTimer(self)
+        self._timer.setInterval(REFRESH_INTERVAL_MS)
         self._timer.timeout.connect(self._flush)
         self._timer.start()
         self._set_running_ui(False)
@@ -110,14 +125,14 @@ class MainWindow(QMainWindow):
         self.reset_layout()
         self._build_menu()
 
-        self.stats_label = _shrinkable(QLabel(objectName="Muted"))
-        self.error_label = _shrinkable(QLabel(objectName="ErrorLabel"))
+        self.stats_label = _shrinkable(_named(QLabel(), "Muted"))
+        self.error_label = _shrinkable(_named(QLabel(), "ErrorLabel"))
         self.error_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.statusBar().addWidget(self.stats_label, 1)
         self.statusBar().addWidget(self.error_label, 1)
 
     def _dock(self, title: str, widget: QWidget) -> QDockWidget:
-        dock = QDockWidget(title, self, objectName=f"{title}Dock")
+        dock = _named(QDockWidget(title, self), f"{title}Dock")
         dock.setWidget(widget)
         dock.setFeatures(
             QDockWidget.DockWidgetFeature.DockWidgetMovable
@@ -151,7 +166,8 @@ class MainWindow(QMainWindow):
         reset = QAction("&Reset layout", self)
         reset.triggered.connect(self.reset_layout)
         view.addAction(reset)
-        self.fullscreen_action = QAction("&Full screen", self, checkable=True)
+        self.fullscreen_action = QAction("&Full screen", self)
+        self.fullscreen_action.setCheckable(True)
         self.fullscreen_action.setShortcut(QKeySequence(Qt.Key.Key_F11))
         self.fullscreen_action.toggled.connect(self._set_fullscreen)
         view.addAction(self.fullscreen_action)
@@ -163,27 +179,29 @@ class MainWindow(QMainWindow):
             self.showMaximized()
 
     def _build_toolbar(self) -> QToolBar:
-        bar = QToolBar("Broker", self, objectName="BrokerToolbar")
+        bar = _named(QToolBar("Broker", self), "BrokerToolbar")
         bar.setMovable(True)
         bar.setFloatable(False)
 
-        bar.addWidget(QLabel(" Interface ", objectName="FieldLabel"))
-        self.interface_combo = QComboBox(objectName="InterfaceCombo")
+        bar.addWidget(_named(QLabel(" Interface "), "FieldLabel"))
+        self.interface_combo = _named(QComboBox(), "InterfaceCombo")
         self.interface_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         self.interface_combo.setMinimumContentsLength(22)
         self.interface_combo.setToolTip("Network adapter / address the broker listens on")
         bar.addWidget(self.interface_combo)
-        self.refresh_button = QToolButton(text="\u27f3", toolTip="Refresh network adapters")
+        self.refresh_button = QToolButton()
+        self.refresh_button.setText("\u27f3")
+        self.refresh_button.setToolTip("Refresh network adapters")
         bar.addWidget(self.refresh_button)
 
-        bar.addWidget(QLabel("  Port ", objectName="FieldLabel"))
-        self.port_spin = QSpinBox(objectName="PortSpin")
+        bar.addWidget(_named(QLabel("  Port "), "FieldLabel"))
+        self.port_spin = _named(QSpinBox(), "PortSpin")
         self.port_spin.setRange(1, 65535)
         self.port_spin.setValue(self.config.port)
         bar.addWidget(self.port_spin)
 
-        bar.addWidget(QLabel("  History ", objectName="FieldLabel"))
-        self.limit_spin = QSpinBox(objectName="LimitSpin")
+        bar.addWidget(_named(QLabel("  History "), "FieldLabel"))
+        self.limit_spin = _named(QSpinBox(), "LimitSpin")
         self.limit_spin.setRange(MIN_HISTORY, MAX_HISTORY)
         self.limit_spin.setValue(self.config.max_messages)
         self.limit_spin.setSuffix(" msgs/topic")
@@ -192,21 +210,21 @@ class MainWindow(QMainWindow):
         bar.addWidget(self.limit_spin)
 
         bar.addWidget(QLabel("  "))
-        self.start_button = QPushButton("Start", objectName="StartButton")
+        self.start_button = _named(QPushButton("Start"), "StartButton")
         self.start_button.setCursor(Qt.CursorShape.PointingHandCursor)
         bar.addWidget(self.start_button)
 
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         bar.addWidget(spacer)
-        self.status_label = QLabel("Stopped", objectName="StatusPill")
+        self.status_label = _named(QLabel("Stopped"), "StatusPill")
         bar.addWidget(self.status_label)
         return bar
 
     def _build_topics_panel(self) -> QWidget:
         panel, layout, header = _panel()
-        self.export_all_button = QPushButton("Export CSV", toolTip="Export history of all topics")
-        self.clear_button = QPushButton("Clear", toolTip="Clear all stored messages")
+        self.export_all_button = _button("Export CSV", "Export history of all topics")
+        self.clear_button = _button("Clear", "Clear all stored messages")
         header.addWidget(self.export_all_button)
         header.addWidget(self.clear_button)
         header.addStretch()
@@ -216,15 +234,19 @@ class MainWindow(QMainWindow):
 
     def _build_messages_panel(self) -> QWidget:
         panel, layout, header = _panel()
-        self.topic_label = _shrinkable(QLabel("Select a topic", objectName="TopicLabel"))
+        self.topic_label = _shrinkable(_named(QLabel("Select a topic"), "TopicLabel"))
         header.addWidget(self.topic_label, 1)
 
-        self.auto_scroll_check = QCheckBox("Auto-scroll", checked=True)
+        self.auto_scroll_check = QCheckBox("Auto-scroll")
+        self.auto_scroll_check.setChecked(True)
         header.addWidget(self.auto_scroll_check)
         header.addSpacing(6)
 
-        self.utf8_button = QPushButton("UTF-8", objectName="Segment", checkable=True, checked=True)
-        self.hex_button = QPushButton("HEX", objectName="Segment", checkable=True)
+        self.utf8_button = _named(QPushButton("UTF-8"), "Segment")
+        self.hex_button = _named(QPushButton("HEX"), "Segment")
+        for button in (self.utf8_button, self.hex_button):
+            button.setCheckable(True)
+        self.utf8_button.setChecked(True)
         self.format_group = QButtonGroup(self)
         self.format_group.setExclusive(True)
         self.format_group.addButton(self.utf8_button)
@@ -236,7 +258,7 @@ class MainWindow(QMainWindow):
         header.addLayout(segment)
         header.addSpacing(6)
 
-        self.export_topic_button = QPushButton("Export topic", toolTip="Export selected topic history")
+        self.export_topic_button = _button("Export topic", "Export selected topic history")
         header.addWidget(self.export_topic_button)
 
         self.message_model = MessageTableModel(self)
@@ -258,9 +280,10 @@ class MainWindow(QMainWindow):
 
     def _build_payload_panel(self) -> QWidget:
         panel, layout, header = _panel()
-        self.payload_info = _shrinkable(QLabel("", objectName="Muted"))
+        self.payload_info = _shrinkable(_named(QLabel(), "Muted"))
         header.addWidget(self.payload_info, 1)
-        self.payload_view = QPlainTextEdit(objectName="PayloadView", readOnly=True)
+        self.payload_view = _named(QPlainTextEdit(), "PayloadView")
+        self.payload_view.setReadOnly(True)
         self.payload_view.setPlaceholderText("Select a message to see its full payload")
         layout.addWidget(self.payload_view)
         return panel
