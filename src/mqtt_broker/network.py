@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import socket
+import sys
 from dataclasses import dataclass
 
 import psutil
@@ -36,7 +37,7 @@ def check_port_available(host: str, port: int) -> None:
     """Raise OSError if host:port cannot be bound exclusively."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         # amqtt binds with SO_REUSEADDR, which on Windows silently shares a busy port
-        if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+        if sys.platform == "win32":
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
         else:
             # On POSIX this only ignores TIME_WAIT; an active listener still blocks the bind
