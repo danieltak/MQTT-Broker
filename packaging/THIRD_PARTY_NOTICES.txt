@@ -1,0 +1,13 @@
+MQTT Broker bundles the following third-party components:
+
+- Qt for Python (PySide6, shiboken6) and Qt 6 - LGPL-3.0
+  https://www.qt.io/qt-for-python  -  source: https://code.qt.io/
+  The Qt libraries are shipped as separate DLLs in this folder and may be
+  replaced with compatible versions built from source.
+- amqtt - MIT - https://github.com/Yakifo/amqtt
+- psutil - BSD-3-Clause - https://github.com/giampaolo/psutil
+- PyYAML, transitions, typer, dacite, pydantic, rich, pwdlib, argon2-cffi - MIT
+- websockets - BSD-3-Clause
+- Python runtime - PSF-2.0 - https://www.python.org/
+
+Full license texts are available from each project's repository.
