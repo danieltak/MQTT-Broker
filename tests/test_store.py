@@ -2,10 +2,29 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from mqtt_broker.models import PayloadFormat, StoredMessage, format_payload
+from mqtt_broker.models import PayloadFormat, StoredMessage, format_payload, topic_matches
 from mqtt_broker.store import ClientRegistry, MessageStore
 
 T0 = datetime(2026, 1, 1, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    ("pattern", "topic", "expected"),
+    [
+        ("", "any/topic", True),
+        ("TEMP", "plant/line1/temperature", True),
+        ("line2", "plant/line1/temperature", False),
+        ("plant/+/status", "plant/line2/status", True),
+        ("plant/+/status", "plant/line2/sub/status", False),
+        ("plant/+", "plant", False),
+        ("alarms/#", "alarms/line1/overtemp", True),
+        ("alarms/#", "alarms", True),
+        ("#", "anything/at/all", True),
+        ("Plant/#", "plant/x", False),
+    ],
+)
+def test_topic_matches(pattern, topic, expected):
+    assert topic_matches(pattern, topic) is expected
 
 
 def msg(topic: str, payload: bytes, n: int = 0) -> StoredMessage:

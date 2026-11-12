@@ -132,6 +132,29 @@ def test_export_csv_from_gui(running, qtbot, mqtt_client, tmp_path):
     assert all(r["timestamp"] for r in rows)
 
 
+def test_topic_filter(running, qtbot, mqtt_client):
+    win = running
+    pub = mqtt_client(win.port_spin.value(), "pub")
+    for topic in ("plant/line1/temperature", "plant/line2/status", "alarms/line1/overtemp"):
+        pub.publish(topic, b"1", qos=1).wait_for_publish(5)
+    qtbot.waitUntil(lambda: len(win.topic_tree.topics()) == 3, timeout=5000)
+
+    qtbot.keyClicks(win.topic_filter, "TEMP")
+    assert win.topic_tree.visible_topics() == ["alarms/line1/overtemp", "plant/line1/temperature"]
+
+    win.topic_filter.setText("plant/+/status")
+    assert win.topic_tree.visible_topics() == ["plant/line2/status"]
+    assert win.topic_tree.topic_item("plant/line1/temperature").isHidden()
+
+    pub.publish("plant/line3/status", b"1", qos=1).wait_for_publish(5)
+    pub.publish("other/topic", b"1", qos=1).wait_for_publish(5)
+    qtbot.waitUntil(lambda: len(win.topic_tree.topics()) == 5, timeout=5000)
+    assert win.topic_tree.visible_topics() == ["plant/line2/status", "plant/line3/status"]
+
+    win.topic_filter.clear()
+    assert len(win.topic_tree.visible_topics()) == 5
+
+
 def test_clear_history(running, qtbot, mqtt_client):
     win = running
     mqtt_client(win.port_spin.value(), "pub").publish("gone", b"1", qos=1).wait_for_publish(5)

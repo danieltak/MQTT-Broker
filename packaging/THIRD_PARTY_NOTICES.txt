@@ -2,7 +2,7 @@ MQTT Broker bundles the following third-party components:
 
 - Qt for Python (PySide6, shiboken6) and Qt 6 - LGPL-3.0
   https://www.qt.io/qt-for-python  -  source: https://code.qt.io/
-  The Qt libraries are shipped as separate DLLs in this folder and may be
+  The Qt libraries are shipped as separate files in this package and may be
   replaced with compatible versions built from source.
 - amqtt - MIT - https://github.com/Yakifo/amqtt
 - psutil - BSD-3-Clause - https://github.com/giampaolo/psutil

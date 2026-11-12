@@ -46,7 +46,7 @@
     <li>
       <a href="#getting-started">Getting Started</a>
       <ul>
-        <li><a href="#download-windows">Download (Windows)</a></li>
+        <li><a href="#download">Download</a></li>
         <li><a href="#prerequisites">Prerequisites</a></li>
         <li><a href="#installation">Installation</a></li>
       </ul>
@@ -56,6 +56,7 @@
       <ul>
         <li><a href="#start-the-broker">Start the broker</a></li>
         <li><a href="#inspect-topics-and-payloads">Inspect topics and payloads</a></li>
+        <li><a href="#filter-topics">Filter topics</a></li>
         <li><a href="#see-connected-devices">See connected devices</a></li>
         <li><a href="#export-to-csv">Export to CSV</a></li>
         <li><a href="#arrange-the-workspace">Arrange the workspace</a></li>
@@ -78,7 +79,7 @@
 
 [![MQTT Broker Screen Shot][product-screenshot]](https://github.com/danieltak/MQTT-Broker)
 
-MQTT Broker is a self-contained MQTT 3.1.1 broker for Windows with a built-in monitor. Start it on your machine,
+MQTT Broker is a self-contained MQTT 3.1.1 broker for **Windows, Linux and macOS** with a built-in monitor. Start it on your machine,
 point your devices, PLCs, gateways or test clients at it, and immediately see every topic, every message and every
 subscriber, without installing a separate broker and a separate MQTT explorer.
 
@@ -95,6 +96,7 @@ It is designed for development benches, commissioning and troubleshooting:
 
 * **Configurable listener** – choose interface (loopback, all interfaces or a specific adapter) and TCP port.
 * **Live topic tree** – topics grouped by `/` levels with per-topic message counts.
+* **Topic search / filter** – case-insensitive text search or MQTT wildcards (`plant/+/status`, `alarms/#`).
 * **Message history** – timestamp, size, QoS, retain flag and publishing client for each message.
 * **UTF‑8 / HEX toggle** – switch the table and payload viewer between text and hex at any time.
 * **Configurable retention** – limit how many messages are kept per topic (1 – 1,000,000).
@@ -103,6 +105,7 @@ It is designed for development benches, commissioning and troubleshooting:
 * **Dockable layout** – move, resize, tab, float or hide every panel; reset with one click.
 * **Dark theme** – modern, clean and easy on the eyes during long sessions.
 * **Settings remembered** – interface, port and history limit are restored on the next start.
+* **Cross-platform** – prebuilt packages for Windows, Linux and macOS.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -122,17 +125,26 @@ It is designed for development benches, commissioning and troubleshooting:
 <!-- GETTING STARTED -->
 ## Getting Started
 
-### Download (Windows)
+### Download
 
-The easiest way to use MQTT Broker is the prebuilt Windows app:
+Prebuilt packages are attached to every [release][release-url]:
 
-1. Download `MQTTBroker-vX.Y.Z-windows-x64.zip` from the [latest release][release-url].
-2. Extract the zip anywhere (for example `C:\Tools\MQTTBroker`).
-3. Run `MQTTBroker.exe`.
+| Platform | Package | Run |
+|---|---|---|
+| Windows (x64) | `MQTTBroker-vX.Y.Z-windows-x64.zip` | Extract, run `MQTTBroker\MQTTBroker.exe` |
+| Linux (x64) | `MQTTBroker-vX.Y.Z-linux-x64.tar.gz` | `tar -xzf MQTTBroker-*.tar.gz && ./MQTTBroker/MQTTBroker` |
+| macOS (Apple silicon) | `MQTTBroker-vX.Y.Z-macos-arm64.zip` | Extract, open `MQTTBroker.app` |
 
 > [!NOTE]
-> The first time the broker listens on a network adapter, Windows Firewall may ask for permission. Allow access on
-> the networks your devices use; loopback-only use needs no firewall rule.
+> **Windows:** the first time the broker listens on a network adapter, Windows Firewall may ask for permission. Allow
+> access on the networks your devices use; loopback-only use needs no firewall rule.
+>
+> **Linux:** built on Ubuntu 22.04, so it runs on most distributions from 2022 onwards (glibc 2.35+). Qt needs a few
+> X11/Wayland libraries that desktop installs usually have; if it fails to start, install them, e.g. on Debian/Ubuntu:
+> `sudo apt install libxcb-cursor0 libxkbcommon-x11-0 libegl1`.
+>
+> **macOS:** the app is not signed or notarized. On first launch right-click `MQTTBroker.app` → **Open**, or run
+> `xattr -dr com.apple.quarantine MQTTBroker.app`. On Intel Macs, run from source instead.
 
 ### Prerequisites
 
@@ -150,8 +162,14 @@ To run from source you need:
    ```
 2. Create and activate a virtual environment
    ```powershell
+   # Windows
    python -m venv .venv
    .\.venv\Scripts\Activate.ps1
+   ```
+   ```sh
+   # Linux / macOS
+   python3 -m venv .venv
+   source .venv/bin/activate
    ```
 3. Install the app
    ```sh
@@ -220,6 +238,20 @@ below. Use **UTF‑8 / HEX** to switch representation — useful for binary fram
 The **History** field in the toolbar sets how many messages are kept *per topic*; older messages are discarded
 first. Lowering it trims existing history immediately.
 
+### Filter topics
+
+Type in the filter box above the topic tree to narrow it down. New topics that arrive while a filter is active are
+only shown if they match.
+
+| Filter | Shows |
+|---|---|
+| `temp` | every topic containing "temp" (case-insensitive), e.g. `plant/line1/temperature` |
+| `plant/+/status` | MQTT wildcard: `plant/line1/status`, `plant/line2/status`, … (one level per `+`) |
+| `alarms/#` | MQTT wildcard: `alarms` and everything below it |
+
+Parent levels of a match stay visible so you can still navigate to it. Clear the box (or press the ✕) to show
+all topics again.
+
 ### See connected devices
 
 The **Clients** panel lists every client with its address, status and connection time. Expand a client to see the
@@ -246,9 +278,10 @@ Every panel (Topics, Messages, Payload, Clients) is a dock: drag its title bar t
 to create tabs, double-click to float it, or close it. Use the **View** menu to show hidden panels, **Reset layout**,
 or toggle **Full screen** (`F11`).
 
-![Docked and tabbed layout][screenshot-docking]
+![Docked and tabbed layout with a topic filter][screenshot-docking]
 
-Settings (interface, port, history limit) are stored in `%APPDATA%\mqtt_broker\config.json`.
+Settings (interface, port, history limit) are stored in `%APPDATA%\mqtt_broker\config.json` on Windows and
+`~/.config/mqtt_broker/config.json` on Linux and macOS.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -270,11 +303,17 @@ pip install -e .
 | Run all tests | `pytest` |
 | Lint | `ruff check .` |
 | Type check | `pyright` |
-| Build the Windows app | `.\packaging\build.ps1 -Version 0.1.1` |
+| Build the app for the current OS | `pwsh ./packaging/build.ps1 -Version 0.1.1` |
+| Smoke-test the built app | `pwsh ./packaging/smoke_test.ps1` |
 
-The test suite covers the message store, CSV export, configuration, network adapter discovery, a real broker with
-real MQTT clients, and the GUI end to end with [pytest-qt](https://pytest-qt.readthedocs.io/) (start/stop, topics,
-HEX/UTF‑8, clients, history limit, export, docking and full screen).
+The build uses [PyInstaller](https://pyinstaller.org/) and [PowerShell](https://learn.microsoft.com/powershell/scripting/install/installing-powershell)
+(`pwsh`, or Windows PowerShell on Windows). Install PyInstaller with `pip install pyinstaller`. The package is written
+to `dist/`: a `.zip` on Windows, a `.tar.gz` on Linux and a zipped `.app` on macOS.
+
+The test suite covers the message store, topic matching and filtering, CSV export, configuration, network adapter
+discovery, a real broker with real MQTT clients, and the GUI end to end with
+[pytest-qt](https://pytest-qt.readthedocs.io/) (start/stop, topics, topic filter, HEX/UTF‑8, clients, history limit,
+export, docking and full screen).
 
 > [!TIP]
 > If the project lives in a OneDrive/Dropbox folder, build outside it to avoid file locks:
@@ -293,7 +332,7 @@ src/mqtt_broker/
 ├── controller.py       # Qt signal bridge between broker thread and GUI
 └── gui/                # PySide6 main window, docks, models and dark theme
 tests/                  # unit, broker integration and GUI tests
-packaging/              # PyInstaller build script for the Windows app
+packaging/              # PyInstaller build and smoke-test scripts (Windows, Linux, macOS)
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -303,17 +342,20 @@ packaging/              # PyInstaller build script for the Windows app
 <!-- RELEASE PROCESS -->
 ## Release Process
 
-Every push and pull request runs **CI**: Ruff and Pyright first, then the tests on Windows and Ubuntu with
+Every push and pull request runs **CI**: Ruff and Pyright first, then the tests on Windows, Ubuntu and macOS with
 Python 3.11 and 3.14.
+
+The **Build** workflow packages and smoke-tests the app on Windows, Linux and macOS. It can also be run on its own
+(**Actions → Build → Run workflow**) to get test packages as workflow artifacts without publishing anything.
 
 Releases are created manually with the **Release** workflow:
 
 1. Bump the version in `pyproject.toml` and `src/mqtt_broker/__init__.py`.
 2. Run **Actions → Release → Run workflow**.
-3. The workflow runs CI, builds and smoke-tests the Windows app, and a **GitHub Copilot agent reviews the changes**
-   since the previous release and writes the changelog (shown in the run summary).
+3. The workflow runs CI, builds and smoke-tests the app for all three platforms, and a **GitHub Copilot agent reviews
+   the changes** since the previous release and writes the changelog (shown in the run summary).
 4. A maintainer reviews the changelog and **approves the deployment** — only then is the GitHub Release published with
-   the zip and the changelog as release notes.
+   the packages and the changelog as release notes.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -328,13 +370,14 @@ Releases are created manually with the **Release** workflow:
 - [x] Connected clients and subscriptions
 - [x] CSV export
 - [x] Dockable dark-mode GUI
-- [x] Windows release with AI-generated changelog
+- [x] Topic search / filter (text and MQTT wildcards)
+- [x] Windows, Linux and macOS builds
+- [x] Releases with AI-generated changelog
 - [ ] Username / password authentication
 - [ ] TLS and WebSocket listeners
 - [ ] Publish test messages from the GUI
-- [ ] Topic search / filter
 - [ ] Remember the dock layout between sessions
-- [ ] Linux and macOS builds
+- [ ] Signed and notarized macOS app, Intel macOS build
 
 See the [open issues][issues-url] for a full list of proposed features (and known issues).
 
@@ -373,8 +416,8 @@ simply open an issue with the tag "enhancement". Don't forget to give the projec
 
 Distributed under the MIT License. See [`LICENSE`](LICENSE) for more information.
 
-The Windows release bundles Qt for Python (PySide6), which is licensed under the LGPL‑3.0; the Qt libraries are shipped
-as separate, replaceable DLLs. See `THIRD_PARTY_NOTICES.txt` in the release zip.
+The release packages bundle Qt for Python (PySide6), which is licensed under the LGPL‑3.0; the Qt libraries are shipped
+as separate, replaceable libraries. See `THIRD_PARTY_NOTICES.txt` in each package.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

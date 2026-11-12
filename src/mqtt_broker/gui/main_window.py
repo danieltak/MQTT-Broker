@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QLineEdit,
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,
@@ -228,6 +229,13 @@ class MainWindow(QMainWindow):
         header.addWidget(self.export_all_button)
         header.addWidget(self.clear_button)
         header.addStretch()
+        self.topic_filter = _named(QLineEdit(), "TopicFilter")
+        self.topic_filter.setPlaceholderText("Filter topics…  (text or wildcard, e.g. plant/+/temp)")
+        self.topic_filter.setClearButtonEnabled(True)
+        self.topic_filter.setToolTip(
+            "Case-insensitive text search, or MQTT wildcards: '+' matches one level, '#' matches the rest"
+        )
+        layout.addWidget(self.topic_filter)
         self.topic_tree = TopicTree()
         layout.addWidget(self.topic_tree)
         return panel
@@ -306,6 +314,7 @@ class MainWindow(QMainWindow):
         self.refresh_button.clicked.connect(lambda: self._populate_interfaces(self.selected_host()))
         self.limit_spin.valueChanged.connect(self._on_limit_changed)
         self.topic_tree.topicSelected.connect(self._on_topic_selected)
+        self.topic_filter.textChanged.connect(self.topic_tree.set_filter)
         self.format_group.buttonToggled.connect(self._on_format_toggled)
         self.message_table.selectionModel().selectionChanged.connect(self._on_message_selection)
         self.export_all_button.clicked.connect(lambda: self._prompt_export(all_topics=True))

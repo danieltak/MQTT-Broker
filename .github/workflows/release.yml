@@ -148,47 +148,11 @@ jobs:
           if-no-files-found: error
 
   build:
-    name: Build Windows app
+    name: Build
     needs: prepare
-    runs-on: windows-latest
-    env:
-      VERSION: ${{ needs.prepare.outputs.version }}
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.14"
-          cache: pip
-          cache-dependency-path: requirements*.txt
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt pyinstaller==6.22.3 .
-
-      - name: Build
-        shell: pwsh
-        run: ./packaging/build.ps1 -Version $env:VERSION
-
-      - name: Smoke test executable
-        shell: pwsh
-        run: |
-          $p = Start-Process dist/MQTTBroker/MQTTBroker.exe -PassThru
-          $deadline = (Get-Date).AddSeconds(45)
-          do {
-            Start-Sleep -Seconds 1
-            $p.Refresh()
-          } until ($p.HasExited -or $p.MainWindowTitle -eq 'MQTT Broker' -or (Get-Date) -gt $deadline)
-          $title = $p.MainWindowTitle
-          $exited = $p.HasExited
-          if (-not $exited) { Stop-Process -Id $p.Id -Force }
-          if ($title -ne 'MQTT Broker') { throw "Main window not shown (title='$title', exited=$exited)" }
-          Write-Output "Executable started and showed its main window"
-
-      - uses: actions/upload-artifact@v6
-        with:
-          name: windows-build
-          path: dist/MQTTBroker-v${{ needs.prepare.outputs.version }}-windows-x64.zip
-          if-no-files-found: error
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
 
   deploy:
     name: Deploy release
@@ -211,7 +175,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.prepare.outputs.tag }}
         run: |
-          gh release create "$TAG" release/*.zip \
+          gh release create "$TAG" release/MQTTBroker-v* \
             --title "MQTT Broker $TAG" \
             --notes-file release/CHANGELOG.md \
             --target "$GITHUB_SHA"

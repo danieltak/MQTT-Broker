@@ -1,4 +1,5 @@
-# Builds the Windows app as a one-folder bundle (Qt stays as separate, replaceable DLLs for LGPL compliance).
+# Builds the app as a one-folder bundle (Qt stays as separate, replaceable libraries for LGPL compliance).
+# Packages it per platform: Windows .zip, Linux .tar.gz, macOS .app in a .zip.
 param(
     [string]$Python = "python",
     [string]$Version = "",
@@ -25,14 +26,39 @@ try {
     $ErrorActionPreference = "Stop"
 
     $app = Join-Path $DistPath "MQTTBroker"
-    Copy-Item LICENSE (Join-Path $app "LICENSE.txt")
-    Copy-Item packaging/THIRD_PARTY_NOTICES.txt (Join-Path $app "THIRD_PARTY_NOTICES.txt")
+    $notices = @{ "LICENSE" = "LICENSE.txt"; "packaging/THIRD_PARTY_NOTICES.txt" = "THIRD_PARTY_NOTICES.txt" }
+    foreach ($source in $notices.Keys) { Copy-Item $source (Join-Path $app $notices[$source]) }
 
     if ($Version) {
-        $zip = Join-Path $DistPath "MQTTBroker-v$Version-windows-x64.zip"
-        if (Test-Path $zip) { Remove-Item $zip }
-        Compress-Archive -Path $app -DestinationPath $zip
-        Write-Output "Created $zip"
+        $arch = if ($IsLinux -or $IsMacOS) { (uname -m) } else { $env:PROCESSOR_ARCHITECTURE }
+        $arch = switch -Regex ($arch) {
+            '^(x86_64|AMD64)$' { 'x64' }
+            '^(arm64|aarch64|ARM64)$' { 'arm64' }
+            default { $arch.ToLower() }
+        }
+        $base = Join-Path $DistPath "MQTTBroker-v$Version"
+        if ($IsMacOS) {
+            $stage = "$base-macos"
+            $archive = "$base-macos-$arch.zip"
+            Remove-Item -Recurse -Force $stage, $archive -ErrorAction SilentlyContinue
+            New-Item -ItemType Directory $stage | Out-Null
+            # ditto keeps the bundle's framework symlinks and executable bits
+            ditto (Join-Path $DistPath "MQTTBroker.app") (Join-Path $stage "MQTTBroker.app")
+            foreach ($source in $notices.Keys) { Copy-Item $source (Join-Path $stage $notices[$source]) }
+            ditto -c -k --keepParent $stage $archive
+        }
+        elseif ($IsLinux) {
+            $archive = "$base-linux-$arch.tar.gz"
+            Remove-Item $archive -ErrorAction SilentlyContinue
+            tar -czf $archive -C $DistPath MQTTBroker
+        }
+        else {
+            $archive = "$base-windows-$arch.zip"
+            Remove-Item $archive -ErrorAction SilentlyContinue
+            Compress-Archive -Path $app -DestinationPath $archive
+        }
+        if (-not (Test-Path $archive)) { throw "Packaging failed: $archive was not created" }
+        Write-Output "Created $archive"
     }
 }
 finally {

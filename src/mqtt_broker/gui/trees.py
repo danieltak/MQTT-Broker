@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QFont
 from PySide6.QtWidgets import QHeaderView, QTreeWidget, QTreeWidgetItem
 
-from ..models import ClientInfo
+from ..models import ClientInfo, topic_matches
 
 TOPIC_ROLE = Qt.ItemDataRole.UserRole
 
@@ -26,6 +26,7 @@ class TopicTree(QTreeWidget):
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self._nodes: dict[str, QTreeWidgetItem] = {}
+        self._filter = ""
         self.currentItemChanged.connect(self._on_current_changed)
 
     def _node(self, path: str, label: str, parent: QTreeWidgetItem | None) -> QTreeWidgetItem:
@@ -53,7 +54,32 @@ class TopicTree(QTreeWidget):
             font.setBold(True)
             parent.setFont(0, font)
             parent.setToolTip(0, topic)
+            if self._filter:
+                self._apply_filter(self._nodes[levels[0]])
         parent.setText(1, str(count))
+
+    def set_filter(self, pattern: str) -> None:
+        self._filter = pattern.strip()
+        for i in range(self.topLevelItemCount()):
+            item = self.topLevelItem(i)
+            if item is not None:
+                self._apply_filter(item)
+
+    def _apply_filter(self, item: QTreeWidgetItem) -> bool:
+        """Show the item if it or any descendant matches; returns its visibility."""
+        visible = False
+        for j in range(item.childCount()):
+            child = item.child(j)
+            if child is not None and self._apply_filter(child):
+                visible = True
+        topic = item.data(0, TOPIC_ROLE)
+        if topic is not None and topic_matches(self._filter, topic):
+            visible = True
+        item.setHidden(not visible)
+        return visible
+
+    def visible_topics(self) -> list[str]:
+        return [t for t in self.topics() if not self._nodes[t].isHidden()]
 
     def topic_item(self, topic: str) -> QTreeWidgetItem | None:
         item = self._nodes.get(topic)
