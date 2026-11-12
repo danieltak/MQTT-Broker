@@ -96,6 +96,8 @@ jobs:
         uses: actions/ai-inference@v3
         with:
           prompt-file: .github/prompts/changelog.prompt.yml
+          # Empty = Copilot CLI default model; fixed models may not be on every Copilot plan
+          model: ""
           input: |
             version: ${{ needs.prepare.outputs.tag }}
             previous: ${{ needs.prepare.outputs.previous_tag || 'none (first release)' }}
