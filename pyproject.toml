@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mqtt-broker"
-version = "0.1.0"
+version = "0.1.1"
 description = "MQTT broker with a PySide6 desktop GUI"
 license = "MIT"
 license-files = ["LICENSE"]
