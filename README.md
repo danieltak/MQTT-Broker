@@ -182,7 +182,16 @@ To run from source you need:
 
 If the port is already in use, the status turns red and the reason is shown in the status bar.
 
-Try it with any MQTT client, for example with [mosquitto clients](https://mosquitto.org/download/):
+Try it with any MQTT client. Desktop clients are the quickest way to test without writing code:
+
+* [MQTT Explorer](https://mqtt-explorer.com/) – connect to `127.0.0.1`, port `1883`, protocol `mqtt://`, then publish
+  and subscribe from its UI.
+* [MQTTX](https://mqttx.app/) – create a new connection with host `127.0.0.1` and port `1883`, then add subscriptions
+  and publish messages.
+
+Use the broker's IP address instead of `127.0.0.1` when the client runs on another machine.
+
+From the command line, for example with [mosquitto clients](https://mosquitto.org/download/):
 
 ```sh
 mosquitto_sub -h 127.0.0.1 -p 1883 -t "plant/#" -i hmi-panel-01
